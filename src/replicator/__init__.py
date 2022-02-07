@@ -8,3 +8,8 @@ from .helpers import (
     outline_3D,
     barycentric_coords_from_cartesian,
 )
+
+from .initial_conditions import (
+    initial_conditions_edges_2D,
+    initial_conditions_in_simplex_2D,
+)
