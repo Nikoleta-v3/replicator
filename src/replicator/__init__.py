@@ -13,3 +13,5 @@ from .initial_conditions import (
     initial_conditions_edges_2D,
     initial_conditions_in_simplex_2D,
 )
+
+from .plotting import plot2D
