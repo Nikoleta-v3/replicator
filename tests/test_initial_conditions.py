@@ -20,13 +20,13 @@ def test_initial_conditions_in_simplex_2D():
     num_x_points = 5
     num_y_points = 2
 
-    ics = replicator.initial_conditions_in_simplex_2D(num_x_points, num_y_points)
+    ics = replicator.initial_conditions_in_simplex_2D(
+        num_x_points, num_y_points
+    )
 
     assert ics.shape[1] == 3
     assert ics.shape[0] >= num_x_points * num_y_points
-    assert (
-        np.sum(ics, axis=1) == np.ones((len(ics), 1))
-    ).all()
+    assert (np.sum(ics, axis=1) == np.ones((len(ics), 1))).all()
 
     # test all initial conditions are in the simplex
     rows, _ = np.where(np.isclose(ics, 0))
