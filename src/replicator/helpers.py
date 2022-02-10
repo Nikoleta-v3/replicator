@@ -90,3 +90,15 @@ def barycentric_coords_from_cartesian(edges, point):
     v[-1] = 1 - v.sum()
     v = (v.T / np.sum(v)).T
     return v
+
+
+def face_function(p1, p2, p3):
+
+    v1 = p3 - p1
+    v2 = p2 - p1
+    cp = np.cross(v1, v2)
+    a, b, c = cp
+
+    d = np.dot(cp, p3)
+
+    return a, b, c, d

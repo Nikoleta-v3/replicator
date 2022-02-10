@@ -4,3 +4,4 @@ sympy==1.9.0
 shapely==1.8.0
 matplotlib==3.4.1
 scipy==1.8.0
+Geometry3D==0.2.4

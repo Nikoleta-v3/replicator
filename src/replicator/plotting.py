@@ -39,11 +39,11 @@ def plot2D(
 
     proj = projection_2D()
 
-    triangleline = outline_2D()
+    lines = outline_2D()
 
     ax.plot(
-        triangleline[0],
-        triangleline[1],
+        lines[0],
+        lines[1],
         clip_on=False,
         color="black",
         zorder=3,

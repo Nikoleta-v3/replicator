@@ -12,6 +12,12 @@ from .helpers import (
 from .initial_conditions import (
     initial_conditions_edges_2D,
     initial_conditions_in_simplex_2D,
+    initial_conditions_edges_3D,
+    initial_conditions_in_simplex_3D,
+    initial_conditions_face_A,
+    initial_conditions_face_B,
+    initial_conditions_face_C,
+    initial_conditions_face_D,
 )
 
 from .plotting import plot2D
