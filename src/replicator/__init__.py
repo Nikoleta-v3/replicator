@@ -18,6 +18,25 @@ from .initial_conditions import (
     initial_conditions_face_B,
     initial_conditions_face_C,
     initial_conditions_face_D,
+    face_function,
 )
 
-from .plotting import plot2D
+from .plotting import plot2D, plot3D
+
+
+from .arrows import Annotation3D, Arrow3D
+
+from .grouping import (
+    min_distance_point,
+    sinks_of_initial_conditions,
+    groups_ics_based_on_sinks,
+)
+
+
+from .phase_plotting import (
+    plot_phase_A,
+    plot_phase_B,
+    plot_phase_C,
+    plot_phase_D,
+    plot_simplex,
+)

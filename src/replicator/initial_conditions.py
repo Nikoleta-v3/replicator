@@ -208,27 +208,41 @@ def initial_conditions_in_simplex_3D(
     for i, point in enumerate(tetra_points):
         ics[i, :] = barycentric_coords_from_cartesian(tetrahedron_edges, point)
 
-    return ics, tetra_points
+    return ics, np.array(tetra_points)
 
 
-def initial_conditions_face_A(tetrahedron, y_num=15, grid_size=0.13):
+def initial_conditions_face_A(tetrahedron, y_num=7, x_num=3):
 
     tetra_edges = edges_3D()
 
     a, b, c, d = face_function(tetra_edges[0], tetra_edges[1], tetra_edges[-1])
 
     pts = np.zeros((y_num - 2, 3))
-
     xs = 0
     ys = np.linspace(0, min(tetra_edges[:, 1]), y_num)
+
     for i, y in enumerate(ys[1:-1]):
         z = (a * xs + b * y - d) / -c
         pts[i, 0] = xs
         pts[i, 1] = y
         pts[i, 2] = z
 
+    point = pts[0]
+    x_line = gm.Segment(
+        gm.Point(-1, point[1], point[2]), gm.Point(1, point[1], point[2])
+    )
+    intersection = gm.intersection(tetrahedron, x_line)
+    x_line_intercept_min, x_line_intercept_max = sorted(
+        [intersection[0][0], intersection[1][0]]
+    )
     points = []
-    for i, pt in enumerate(pts):
+    xs = np.linspace(x_line_intercept_min, x_line_intercept_max, x_num)
+    for x in xs[1:-1]:
+        points.append((x, point[1], point[2]))
+
+    diff = xs[1] - xs[0]
+
+    for pt in pts[1:]:
         x_line = gm.Segment(
             gm.Point(-1, pt[1], pt[2]), gm.Point(1, pt[1], pt[2])
         )
@@ -236,24 +250,18 @@ def initial_conditions_face_A(tetrahedron, y_num=15, grid_size=0.13):
         x_line_intercept_min, x_line_intercept_max = sorted(
             [intersection[0][0], intersection[1][0]]
         )
-        n_sample = int(
-            np.ceil(
-                np.abs(x_line_intercept_max - x_line_intercept_min) / grid_size
-            )
-        )
 
-        xx = np.linspace(x_line_intercept_min, x_line_intercept_max, n_sample)
+        xx = np.arange(x_line_intercept_min, x_line_intercept_max, diff)
         for x in xx[1:-1]:
             points.append((x, pt[1], pt[2]))
 
-        ics = np.zeros([len(points), 4])
-        for i, point in enumerate(points):
-            ics[i, :] = barycentric_coords_from_cartesian(tetra_edges, point)
+    ics = np.zeros([len(points), 4])
+    for i, point in enumerate(points):
+        ics[i, :] = barycentric_coords_from_cartesian(tetra_edges, point)
+    return ics, np.array(points)
 
-    return ics, points
 
-
-def initial_conditions_face_B(tetrahedron, x_num=15, grid_size=0.13):
+def initial_conditions_face_B(tetrahedron, x_num=15, y_num=3):
 
     tetra_edges = edges_3D()
 
@@ -271,8 +279,32 @@ def initial_conditions_face_B(tetrahedron, x_num=15, grid_size=0.13):
         pts[i, 1] = ys
         pts[i, 2] = z
 
+    point = pts[0]
+    x_line = gm.Segment(
+        gm.Point(
+            (c * point[2] + b * min(tetra_edges[:, 1]) - d) / -a,
+            min(tetra_edges[:, 1]),
+            point[2],
+        ),
+        gm.Point(
+            (c * point[2] + b * max(tetra_edges[:, 1]) - d) / -a,
+            max(tetra_edges[:, 1]),
+            point[2],
+        ),
+    )
+
+    intersection = gm.intersection(tetrahedron, x_line)
+    y_line_intercept_min, y_line_intercept_max = sorted(
+        [intersection[0][0], intersection[1][0]]
+    )
     points = []
-    for i, pt in enumerate(pts):
+    ys = np.linspace(y_line_intercept_min, y_line_intercept_max, y_num)
+    for y in ys[1:-1]:
+        points.append(((c * point[2] + b * y - d) / -a, y, point[2]))
+
+    diff = ys[1] - ys[0]
+
+    for pt in pts[1:]:
         x_line = gm.Segment(
             gm.Point(
                 (c * pt[2] + b * min(tetra_edges[:, 1]) - d) / -a,
@@ -285,116 +317,121 @@ def initial_conditions_face_B(tetrahedron, x_num=15, grid_size=0.13):
                 pt[2],
             ),
         )
-
         intersection = gm.intersection(tetrahedron, x_line)
-
         y_line_intercept_min, y_line_intercept_max = sorted(
             [intersection[0][1], intersection[1][1]]
         )
 
-        n_sample = int(
-            np.ceil(
-                np.abs(y_line_intercept_max - y_line_intercept_min) / grid_size
-            )
-        )
-
-        yy = np.linspace(y_line_intercept_min, y_line_intercept_max, n_sample)
-
-        for y in yy[1:-1]:
-            points.append(((c * pt[2] + b * y - d) / -a, y, pt[2]))
-
-        ics = np.zeros([len(points), 4])
-        for i, point in enumerate(points):
-            ics[i, :] = barycentric_coords_from_cartesian(tetra_edges, point)
-
-    return ics, points
-
-
-def initial_conditions_face_C(tetrahedron, x_num=15, grid_size=0.13):
-
-    tetra_edges = edges_3D()
-
-    a, b, c, d = face_function(tetra_edges[0], tetra_edges[2], tetra_edges[-1])
-
-    pts = np.zeros((x_num - 2, 3))
-
-    ys = 0.1
-    xs = np.linspace(-0.65, 0, x_num)
-    for i, x in enumerate(xs[1:-1]):
-
-        z = (a * x + b * ys - d) / -c
-        pts[i, 0] = x
-        pts[i, 1] = ys
-        pts[i, 2] = z
-
-    points = []
-    for i, pt in enumerate(pts):
-        x_line = gm.Segment(
-            gm.Point(
-                (c * pt[2] + b * min(tetra_edges[:, 1]) - d) / -a,
-                min(tetra_edges[:, 1]),
-                pt[2],
-            ),
-            gm.Point(
-                (c * pt[2] + b * max(tetra_edges[:, 1]) - d) / -a,
-                max(tetra_edges[:, 1]),
-                pt[2],
-            ),
-        )
-
-        intersection = gm.intersection(tetrahedron, x_line)
-
-        y_line_intercept_min, y_line_intercept_max = sorted(
-            [intersection[0][1], intersection[1][1]]
-        )
-
-        n_sample = int(
-            np.ceil(
-                np.abs(y_line_intercept_max - y_line_intercept_min) / grid_size
-            )
-        )
-
-        yy = np.linspace(y_line_intercept_min, y_line_intercept_max, n_sample)
-
+        yy = np.arange(y_line_intercept_min, y_line_intercept_max, diff)
         for y in yy[1:-1]:
             points.append(((c * pt[2] + b * y - d) / -a, y, pt[2]))
 
     ics = np.zeros([len(points), 4])
     for i, point in enumerate(points):
         ics[i, :] = barycentric_coords_from_cartesian(tetra_edges, point)
+    return ics, np.array(points)
 
-    return ics, points
 
-
-def initial_conditions_face_D(grid_size=0.13):
-
-    edges = edges_2D()
+def initial_conditions_face_C(tetrahedron, z_num=15, y_num=3):
 
     tetra_edges = edges_3D()
 
+    a, b, c, d = face_function(tetra_edges[0], tetra_edges[2], tetra_edges[-1])
+
+    pts = np.zeros((z_num, 3))
+    ys = 0
+    zs = np.linspace(
+        max(tetra_edges[:, -1]), min(tetra_edges[:, -1]), z_num + 2
+    )
+    for i, z in enumerate(zs[1:-1]):
+
+        x = (c * z + b * ys - d) / -a
+        pts[i, 0] = x
+        pts[i, 1] = ys
+        pts[i, 2] = z
+
+    point = pts[0]
+    x_line = gm.Segment(
+        gm.Point(
+            (c * point[2] + b * min(tetra_edges[:, 1]) - d) / -a,
+            min(tetra_edges[:, 1]),
+            point[2],
+        ),
+        gm.Point(
+            (c * point[2] + b * max(tetra_edges[:, 1]) - d) / -a,
+            max(tetra_edges[:, 1]),
+            point[2],
+        ),
+    )
+
+    intersection = gm.intersection(tetrahedron, x_line)
+    y_line_intercept_min, y_line_intercept_max = sorted(
+        [intersection[0][1], intersection[1][1]]
+    )
+    ys = np.linspace(y_line_intercept_min, y_line_intercept_max, y_num)
+    points = []
+    for y in ys[1:-1]:
+        points.append(((c * point[2] + b * y - d) / -a, y, point[2]))
+    diff = ys[1] - ys[0]
+
+    for pt in pts[1:]:
+        x_line = gm.Segment(
+            gm.Point(
+                (c * pt[2] + b * min(tetra_edges[:, 1]) - d) / -a,
+                min(tetra_edges[:, 1]),
+                pt[2],
+            ),
+            gm.Point(
+                (c * pt[2] + b * max(tetra_edges[:, 1]) - d) / -a,
+                max(tetra_edges[:, 1]),
+                pt[2],
+            ),
+        )
+        intersection = gm.intersection(tetrahedron, x_line)
+        y_line_intercept_min, y_line_intercept_max = sorted(
+            [intersection[0][1], intersection[1][1]]
+        )
+        yy = np.arange(y_line_intercept_min, y_line_intercept_max, diff)
+        for y in yy[1:]:
+            points.append(((c * pt[2] + b * y - d) / -a, y, pt[2]))
+
+    ics = np.zeros([len(points), 4])
+    for i, point in enumerate(points):
+        ics[i, :] = barycentric_coords_from_cartesian(tetra_edges, point)
+
+    return ics, np.array(points)
+
+
+def initial_conditions_face_D(x_num, y_num=3):
+
+    edges = edges_2D()
+    tetra_edges = edges_3D()
+    poly = shp.Polygon(edges)
     z = tetra_edges[0][-1]
 
-    poly = shp.Polygon(edges)
-
     min_x, min_y, max_x, max_y = poly.bounds
+    xs = np.linspace(int(min_x), int(max_x), x_num + 2)[1:-1]
 
-    n = int(np.ceil(np.abs(max_x - min_x) / grid_size))
-    xs = np.linspace(int(min_x), int(max_x), n)[1:-1]
+    # estimate diff between y-points
+    x = xs[0]
+    x_line = shp.LineString([(x, min_y), (x, max_y)])
+    x_line_intercept_min, x_line_intercept_max = (
+        x_line.intersection(poly).xy[1].tolist()
+    )
+    yy = np.linspace(x_line_intercept_min, x_line_intercept_max, y_num)
 
-    points = []
-    for x in xs[1:-1]:
+    points = [[x, y, z] for y in yy[1:-1]]
+    difference_in_y = yy[1] - yy[0]
 
+    # use this difference for various x points
+    for x in xs[1:]:
         x_line = shp.LineString([(x, min_y), (x, max_y)])
         x_line_intercept_min, x_line_intercept_max = (
             x_line.intersection(poly).xy[1].tolist()
         )
-
-        n_sample = int(
-            np.ceil(
-                np.abs(x_line_intercept_max - x_line_intercept_min) / grid_size
-            )
+        yy = np.arange(
+            x_line_intercept_min, x_line_intercept_max, difference_in_y
         )
-        yy = np.linspace(x_line_intercept_min, x_line_intercept_max, n_sample)
 
         for y in yy[1:-1]:
             points.append([x, y, z])
@@ -403,4 +440,4 @@ def initial_conditions_face_D(grid_size=0.13):
     for i, point in enumerate(points):
         ics[i, :] = barycentric_coords_from_cartesian(tetra_edges, point)
 
-    return ics, points
+    return ics, np.array(points)

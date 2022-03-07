@@ -80,7 +80,8 @@ def test_initial_conditions_face_A():
     tetrahedron = gm.ConvexPolyhedron((cpg0, cpg1, cpg2, cpg3))
 
     ics, _ = replicator.initial_conditions_face_A(
-        tetrahedron, y_num=15, grid_size=0.13
+        tetrahedron,
+        y_num=15,
     )
 
     assert ics.shape[1] == 4
@@ -105,7 +106,7 @@ def test_initial_conditions_face_B():
     tetrahedron = gm.ConvexPolyhedron((cpg0, cpg1, cpg2, cpg3))
 
     ics, _ = replicator.initial_conditions_face_B(
-        tetrahedron, x_num=15, grid_size=0.13
+        tetrahedron, x_num=15, y_num=3
     )
 
     assert ics.shape[1] == 4
@@ -130,7 +131,8 @@ def test_initial_conditions_face_C():
     tetrahedron = gm.ConvexPolyhedron((cpg0, cpg1, cpg2, cpg3))
 
     ics, _ = replicator.initial_conditions_face_C(
-        tetrahedron, x_num=15, grid_size=0.13
+        tetrahedron,
+        z_num=5,
     )
 
     assert ics.shape[1] == 4
@@ -142,7 +144,7 @@ def test_initial_conditions_face_C():
 
 def test_initial_conditions_face_D():
 
-    ics, _ = replicator.initial_conditions_face_D(grid_size=0.13)
+    ics, _ = replicator.initial_conditions_face_D(x_num=5)
 
     assert ics.shape[1] == 4
     assert (np.sum(ics, axis=1) == np.ones((len(ics), 1))).all()
