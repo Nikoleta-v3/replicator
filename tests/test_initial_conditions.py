@@ -61,7 +61,7 @@ def test_initial_conditions_in_simplex_2D():
     assert (np.sum(ics, axis=1) == np.ones((len(ics), 1))).all()
 
     # test no initial conditions are in the simplex
-    rows, _ = np.where(np.isclose(ics, 0, atol=10**-4))
+    rows, _ = np.where(np.isclose(ics, 0, atol=10 ** -4))
     assert len(rows) == 0
 
 
@@ -87,7 +87,7 @@ def test_initial_conditions_face_A():
     assert ics.shape[1] == 4
     assert (np.sum(ics, axis=1) == np.ones((len(ics), 1))).all()
 
-    _, cols = np.where(np.isclose(ics, 0, atol=10**-4))
+    _, cols = np.where(np.isclose(ics, 0, atol=10 ** -4))
     assert set(cols) == set([2])
 
 
@@ -112,7 +112,7 @@ def test_initial_conditions_face_B():
     assert ics.shape[1] == 4
     assert (np.sum(ics, axis=1) == np.ones((len(ics), 1))).all()
 
-    _, cols = np.where(np.isclose(ics, 0, atol=10**-4))
+    _, cols = np.where(np.isclose(ics, 0, atol=10 ** -4))
     assert set(cols) == set([0])
 
 
@@ -138,7 +138,7 @@ def test_initial_conditions_face_C():
     assert ics.shape[1] == 4
     assert (np.sum(ics, axis=1) == np.ones((len(ics), 1))).all()
 
-    _, cols = np.where(np.isclose(ics, 0, atol=10**-4))
+    _, cols = np.where(np.isclose(ics, 0, atol=10 ** -4))
     assert set(cols) == set([1])
 
 
@@ -149,5 +149,5 @@ def test_initial_conditions_face_D():
     assert ics.shape[1] == 4
     assert (np.sum(ics, axis=1) == np.ones((len(ics), 1))).all()
 
-    _, cols = np.where(np.isclose(ics, 0, atol=10**-4))
+    _, cols = np.where(np.isclose(ics, 0, atol=10 ** -4))
     assert set(cols) == set([3])

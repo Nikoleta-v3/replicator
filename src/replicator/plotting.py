@@ -1,5 +1,6 @@
 from matplotlib import pyplot as plt
 import numpy as np
+import nashpy as nash
 from replicator.arrows import Annotation3D, Arrow3D
 from replicator.initial_conditions import (
     initial_conditions_edges_2D,
@@ -33,7 +34,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
 def _annotate3D(ax, text, xyz, *args, **kwargs):
-    """Add anotation `text` to an `Axes3d` instance."""
+    """Add annotation `text` to an `Axes3d` instance."""
 
     annotation = Annotation3D(text, xyz, *args, **kwargs)
     ax.add_artist(annotation)
@@ -64,6 +65,7 @@ def plot2D(
     num_x_points_simplex=5,
     num_y_edge_points_simplex=2,
     ax=None,
+    compute_nash=False,
 ):
     assert payoff_mat.shape == (3, 3)
     if not ax:
@@ -73,6 +75,9 @@ def plot2D(
 
     xs = np.array(sym.symbols(f"x_1:{size + 1}"))
     solutions = np.array(fixed_points(xs, payoff_mat))
+
+    solutions = np.array([s for s in solutions if xs not in s])
+
 
     solutions = solutions[~np.any(solutions < 0, axis=1)]
     solutions = solutions[~np.any(solutions > 1, axis=1)]
@@ -108,7 +113,7 @@ def plot2D(
 
     J = jacobian(xs, payoff_mat)
     point_types = []
-    for i, solution in enumerate(solutions):
+    for solution in solutions:
         point_type = point_is(J, xs, solution)
         colour = colours[point_type]
         point_types.append((solution, point_type))
@@ -116,28 +121,24 @@ def plot2D(
         ax.scatter(
             np.dot(proj, solution)[0],
             np.dot(proj, solution)[1],
-            s=300,
+            s=100,
             color="black",
             facecolor=colour,
             marker="o",
             zorder=11,
         )
 
-        if point_type == "sink":
-            payoffs_of_point = np.array(
-                [solution @ payoff_mat @ other for other in solutions]
-            )
+    if compute_nash:
+        game = nash.Game(payoff_mat, payoff_mat.T)
+        equilibria = list(game.support_enumeration())
 
-            if (
-                len(np.where(payoffs_of_point == payoffs_of_point[i])[0]) > 0
-                and len(np.where(payoffs_of_point < payoffs_of_point[i])[0]) > 0
-            ):
+        for eq in equilibria:
+            if (eq[0] == eq[1]).all():
                 ax.scatter(
-                    np.dot(proj, solution)[0],
-                    np.dot(proj, solution)[1],
-                    s=300,
-                    color="black",
-                    facecolor="white",
+                    np.dot(proj, eq[0])[0],
+                    np.dot(proj, eq[0])[1],
+                    s=100,
+                    color="white",
                     marker="x",
                     zorder=11,
                 )
@@ -192,13 +193,20 @@ def plot2D(
     for point, type_ in point_types:
         information.append(f"{point} is a {type_} point.")
 
+    if compute_nash:
+        information.append(
+            f"There are a total of {len(equilibria)} equilibria."
+        )
+        for i, eq in enumerate(equilibria):
+            information.append(f"{i + 1}. {eq}")
+
     return ax, information
 
 
 def plot3D(
     payoff_mat,
     labels,
-    diff_tolerance=5 * 10**-2,
+    diff_tolerance=5 * 10 ** -2,
     generations_forward_A=10,
     generations_backwards_A=10,
     generations_forward_B=50,
@@ -207,7 +215,7 @@ def plot3D(
     generations_backwards_C=10,
     generations_forward_D=10,
     generations_backwards_D=10,
-    title=False
+    title=False,
 ):
 
     assert payoff_mat.shape == (4, 4)
@@ -311,7 +319,7 @@ def plot3D(
                 arrowstyle="-|>",
                 linestyle="dashed",
                 zorder=3,
-                fc="black",
+                fc="white",
             )
 
     plot_phase_A(
@@ -356,7 +364,7 @@ def plot3D(
     plot_simplex(
         axes[2],
         payoff_mat,
-        10**-1,
+        10 ** -1,
         generations=6,
         generations_forward=25,
         generations_backwards=10,

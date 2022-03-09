@@ -24,7 +24,7 @@ def sinks_of_initial_conditions(ics, payoff_mat, diff_tolerance, generations=6):
 
                 while (
                     np.isclose(
-                        trajectory[-1], trajectory[-2], atol=10**-3
+                        trajectory[-1], trajectory[-2], atol=10 ** -3
                     ).all()
                     == False
                 ):
