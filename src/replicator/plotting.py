@@ -54,7 +54,7 @@ setattr(Axes3D, "arrow3D", _arrow3D)
 
 setattr(Axes3D, "annotate3D", _annotate3D)
 
-colours = {"sink": "black", "source": "white", "saddle": "grey"}
+colours = {"sink": "black", "source": "white", "saddle": "white"}
 
 
 def plot2D(
@@ -69,7 +69,7 @@ def plot2D(
 ):
     assert payoff_mat.shape == (3, 3)
     if not ax:
-        fig, ax = plt.subplots(figsize=(6, 6))
+        fig, ax = plt.subplots(figsize=(5, 5))
 
     size = payoff_mat.shape[0]
 
@@ -81,6 +81,7 @@ def plot2D(
 
     solutions = solutions[~np.any(solutions < 0, axis=1)]
     solutions = solutions[~np.any(solutions > 1, axis=1)]
+    solutions = [[float(s) for s in solution] for solution in solutions]
 
     proj = projection_2D()
 
@@ -92,7 +93,7 @@ def plot2D(
         clip_on=False,
         color="black",
         zorder=3,
-        linewidth=0.5,
+        linewidth=2,
     )
 
     for label, coord, ha, va in zip(
@@ -128,18 +129,14 @@ def plot2D(
             zorder=11,
         )
 
-    if compute_nash:
-        game = nash.Game(payoff_mat, payoff_mat.T)
-        equilibria = list(game.support_enumeration())
-
-        for eq in equilibria:
-            if (eq[0] == eq[1]).all():
+        if point_type == "saddle":
                 ax.scatter(
-                    np.dot(proj, eq[0])[0],
-                    np.dot(proj, eq[0])[1],
-                    s=100,
-                    color="white",
-                    marker="x",
+                    np.dot(proj, solution)[0],
+                    np.dot(proj, solution)[1],
+                    s=10,
+                    color="black",
+                    facecolor="black",
+                    marker="o",
                     zorder=11,
                 )
 
@@ -148,8 +145,7 @@ def plot2D(
     ics = initial_conditions_in_simplex_2D(
         num_x_points_simplex, num_y_edge_points_simplex
     )
-
-    for x in np.concatenate((ics, ics_edges), axis=0):
+    for x in ics_edges:
 
         trajectory = odeint(odes, x, time, args=(payoff_mat,))
 
@@ -177,11 +173,45 @@ def plot2D(
             yy[ind + 1] - yy[ind],
             shape="full",
             lw=0,
-            head_width=0.03,
+            head_width=0.07,
             edgecolor="black",
             facecolor="black",
             zorder=3,
         )
+
+    # for x in ics:
+
+    #     trajectory = odeint(odes, x, time, args=(payoff_mat,))
+
+    #     plot_values = np.dot(proj, trajectory.T)
+    #     xx = plot_values[0]
+    #     yy = plot_values[1]
+
+    #     dist = np.sqrt(np.sum(np.diff(plot_values, axis=1) ** 2, axis=0))
+    #     dist = np.cumsum(dist)
+
+    #     ind = np.abs(dist - 0.065).argmin()
+
+    #     ax.plot(
+    #         xx[: ind + 1],
+    #         yy[: ind + 1],
+    #         linewidth=1,
+    #         color="black",
+    #         zorder=3,
+    #     )
+
+    #     ax.arrow(
+    #         xx[ind],
+    #         yy[ind],
+    #         xx[ind + 1] - xx[ind],
+    #         yy[ind + 1] - yy[ind],
+    #         shape="full",
+    #         lw=0,
+    #         head_width=0.03,
+    #         edgecolor="black",
+    #         facecolor="black",
+    #         zorder=3,
+    #     )
 
     ax.set_xticks([], minor=False)
     ax.set_yticks([], minor=False)

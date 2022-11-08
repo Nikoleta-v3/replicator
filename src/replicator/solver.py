@@ -48,10 +48,14 @@ def point_is(jacobian, xs, solution):
     eigen_values = np.array(
         [float(val.subs({sym.I: 0})) for val in list(eigen_values.keys())]
     )
+    if 1 in solution:
+        mask = np.ones(eigen_values.shape, bool)
+        mask[np.where(np.isclose(solution, 1))] = False
+        eigen_values = eigen_values[mask]
 
-    if (eigen_values <= 0).all():
+    if (eigen_values < 0).all():
         return "sink"
-    if (eigen_values >= 0).all():
+    if (eigen_values > 0).all():
         return "source"
     else:
         return "saddle"
