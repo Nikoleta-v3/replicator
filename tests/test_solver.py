@@ -70,4 +70,4 @@ def tests_point_is():
             ]
         ),
     )
-    assert mixed == "sink"
+    assert mixed == "saddle"

@@ -6,7 +6,7 @@ import Geometry3D as gm
 def test_initial_conditions_edges_2D():
     num_x_points = 5
 
-    ics = replicator.initial_conditions_edges_2D(num_x_points)
+    ics = replicator.initial_conditions_edges_2D([num_x_points] * 3)
 
     assert ics.shape == (num_x_points * 3, 3)
     assert (np.sum(ics, axis=1) == np.ones((num_x_points * 3, 1))).all()
@@ -22,7 +22,7 @@ def test_initial_conditions_in_simplex_2D():
     num_y_points = 2
 
     ics = replicator.initial_conditions_in_simplex_2D(
-        num_x_points, num_y_points
+        [num_x_points] * 3, num_y_points
     )
 
     assert ics.shape[1] == 3
