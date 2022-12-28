@@ -1,6 +1,7 @@
 from matplotlib import pyplot as plt
 import numpy as np
 import nashpy as nash
+from replicator.solver import odes_for_numerical_solver
 from replicator.arrows import Annotation3D, Arrow3D
 from replicator.initial_conditions import (
     initial_conditions_edges_2D,
@@ -17,6 +18,8 @@ from replicator.phase_plotting import (
 
 import sympy as sym
 
+import itertools
+
 from scipy.integrate import odeint
 
 from .solver import fixed_points, jacobian, point_is, odes
@@ -27,6 +30,7 @@ from .helpers import (
     projection_3D,
     outline_3D,
     edges_3D,
+    barycentric_coords_from_cartesian,
 )
 
 import Geometry3D as gm
@@ -61,11 +65,10 @@ def plot2D(
     payoff_mat,
     labels,
     time,
-    num_of_edge_ics=5,
+    num_of_edge_ics=[1, 1, 1],
     num_x_points_simplex=5,
     num_y_edge_points_simplex=2,
     ax=None,
-    compute_nash=False,
 ):
     assert payoff_mat.shape == (3, 3)
     if not ax:
@@ -77,7 +80,6 @@ def plot2D(
     solutions = np.array(fixed_points(xs, payoff_mat))
 
     solutions = np.array([s for s in solutions if xs not in s])
-
 
     solutions = solutions[~np.any(solutions < 0, axis=1)]
     solutions = solutions[~np.any(solutions > 1, axis=1)]
@@ -130,15 +132,15 @@ def plot2D(
         )
 
         if point_type == "saddle":
-                ax.scatter(
-                    np.dot(proj, solution)[0],
-                    np.dot(proj, solution)[1],
-                    s=10,
-                    color="black",
-                    facecolor="black",
-                    marker="o",
-                    zorder=11,
-                )
+            ax.scatter(
+                np.dot(proj, solution)[0],
+                np.dot(proj, solution)[1],
+                s=10,
+                color="black",
+                facecolor="black",
+                marker="o",
+                zorder=11,
+            )
 
     ics_edges = initial_conditions_edges_2D(num_of_edge_ics)
 
@@ -179,39 +181,39 @@ def plot2D(
             zorder=3,
         )
 
-    # for x in ics:
+    for x in ics:
 
-    #     trajectory = odeint(odes, x, time, args=(payoff_mat,))
+        trajectory = odeint(odes, x, time, args=(payoff_mat,))
 
-    #     plot_values = np.dot(proj, trajectory.T)
-    #     xx = plot_values[0]
-    #     yy = plot_values[1]
+        plot_values = np.dot(proj, trajectory.T)
+        xx = plot_values[0]
+        yy = plot_values[1]
 
-    #     dist = np.sqrt(np.sum(np.diff(plot_values, axis=1) ** 2, axis=0))
-    #     dist = np.cumsum(dist)
+        dist = np.sqrt(np.sum(np.diff(plot_values, axis=1) ** 2, axis=0))
+        dist = np.cumsum(dist)
 
-    #     ind = np.abs(dist - 0.065).argmin()
+        ind = np.abs(dist - 0.065).argmin()
 
-    #     ax.plot(
-    #         xx[: ind + 1],
-    #         yy[: ind + 1],
-    #         linewidth=1,
-    #         color="black",
-    #         zorder=3,
-    #     )
+        ax.plot(
+            xx[: ind + 1],
+            yy[: ind + 1],
+            linewidth=1,
+            color="black",
+            zorder=3,
+        )
 
-    #     ax.arrow(
-    #         xx[ind],
-    #         yy[ind],
-    #         xx[ind + 1] - xx[ind],
-    #         yy[ind + 1] - yy[ind],
-    #         shape="full",
-    #         lw=0,
-    #         head_width=0.03,
-    #         edgecolor="black",
-    #         facecolor="black",
-    #         zorder=3,
-    #     )
+        ax.arrow(
+            xx[ind],
+            yy[ind],
+            xx[ind + 1] - xx[ind],
+            yy[ind + 1] - yy[ind],
+            shape="full",
+            lw=0,
+            head_width=0.03,
+            edgecolor="black",
+            facecolor="black",
+            zorder=3,
+        )
 
     ax.set_xticks([], minor=False)
     ax.set_yticks([], minor=False)
@@ -222,13 +224,6 @@ def plot2D(
     information = [f"There are a total of {len(point_types)} fixed points."]
     for point, type_ in point_types:
         information.append(f"{point} is a {type_} point.")
-
-    if compute_nash:
-        information.append(
-            f"There are a total of {len(equilibria)} equilibria."
-        )
-        for i, eq in enumerate(equilibria):
-            information.append(f"{i + 1}. {eq}")
 
     return ax, information
 
@@ -421,3 +416,322 @@ def plot3D(
     fig.tight_layout()
 
     return fig
+
+
+def plot3D_exterior(
+    payoff_mat,
+    labels,
+    mutation=None,
+    starting_solution=None,
+    edges=True,
+    tol=10 ** -9,
+):
+    fig = plt.figure(figsize=(10, 10))
+
+    proj = projection_3D()
+    edges_ = edges_3D()
+    lines, last_line = outline_3D()
+    size = payoff_mat.shape[0]
+
+    pa = gm.Point(edges_[0])
+    pb = gm.Point(edges_[1])
+    pc = gm.Point(edges_[2])
+    pd = gm.Point(edges_[3])
+
+    cpg0 = gm.ConvexPolygon((pa, pb, pc))
+    cpg1 = gm.ConvexPolygon((pa, pb, pd))
+    cpg2 = gm.ConvexPolygon((pa, pc, pd))
+    cpg3 = gm.ConvexPolygon((pb, pc, pd))
+
+    tetrahedron = gm.ConvexPolyhedron((cpg0, cpg1, cpg2, cpg3))
+
+    xs = np.array(sym.symbols(f"x_1:{size + 1}"))
+    if mutation:
+        solutions = []
+        if edges:
+            for start in [
+                x
+                for x in list(itertools.product([0, 1], repeat=4))
+                if sum(x) == 1
+            ]:
+                solution = np.array(
+                    fixed_points(
+                        xs,
+                        payoff_mat,
+                        mutation=mutation,
+                        starting_solution=start,
+                    )
+                )
+
+                if np.isclose(
+                    odes_for_numerical_solver(solution, payoff_mat, mutation),
+                    [0 for _ in range(size)],
+                    atol=tol,
+                ).all():
+                    solutions.append(solution)
+
+        if starting_solution:
+            solution = np.array(
+                fixed_points(
+                    xs,
+                    payoff_mat,
+                    mutation=mutation,
+                    starting_solution=starting_solution,
+                )
+            )
+            if np.isclose(
+                odes_for_numerical_solver(solution, payoff_mat, mutation),
+                [0 for _ in range(size)],
+                atol=tol,
+            ).all():
+                solutions.append(solution)
+
+    else:
+        solutions = np.array(fixed_points(xs, payoff_mat))
+
+    solutions = np.array([s for s in solutions if xs not in s])
+    solutions = solutions[~np.any(solutions < 0, axis=1)]
+    solutions = solutions[~np.any(solutions > 1, axis=1)]
+    solutions = [[float(s) for s in solution] for solution in solutions]
+
+    J = jacobian(xs, payoff_mat)
+    point_types = [point_is(J, xs, solution) for solution in solutions]
+
+    ax = fig.add_subplot(projection="3d")
+
+    ax.plot(lines[0], lines[1], lines[2], color="black")
+
+    ax.plot(
+        last_line[0], last_line[1], last_line[2], color="black", linestyle="--"
+    )
+
+    for label, coord, ha, va in zip(
+        labels,
+        [(0.0, 0.31), (0.5, 0.1), (0.85, 0.35), (0.44, 0.8)],
+        ["left", "right", "right", "center"],
+        ["bottom", "bottom", "bottom", "top"],
+    ):
+        ax.annotate(
+            label,
+            xy=coord,
+            xycoords="axes fraction",
+            ha=ha,
+            va=va,
+            color="black",
+            weight="bold",
+            fontsize=15,
+        )
+
+    for solution, point_type in zip(solutions, point_types):
+        colour = colours[point_type]
+        point_types.append((solution, point_type))
+
+        ax.scatter(
+            np.dot(proj, solution)[0],
+            np.dot(proj, solution)[1],
+            np.dot(proj, solution)[2],
+            s=100,
+            color="black",
+            facecolor=colour,
+            marker="o",
+            zorder=11,
+        )
+
+        if point_type == "saddle":
+            ax.scatter(
+                np.dot(proj, solution)[0],
+                np.dot(proj, solution)[1],
+                np.dot(proj, solution)[2],
+                s=10,
+                color="black",
+                facecolor="black",
+                marker="o",
+                zorder=11,
+            )
+
+    ax.view_init(15, -40)
+
+    ax.axis("off")
+
+    return ax, solutions
+
+
+def plot2D_exterior(
+    payoff_mat,
+    labels,
+    ax=None,
+    mutation=None,
+    starting_solution=None,
+    edges=True,
+    tol=10 ** -9,
+):
+    assert payoff_mat.shape == (3, 3)
+    if not ax:
+        fig, ax = plt.subplots(figsize=(5, 5))
+
+    size = payoff_mat.shape[0]
+
+    xs = np.array(sym.symbols(f"x_1:{size + 1}"))
+
+    if mutation:
+        solutions = []
+        if edges:
+            for start in [
+                x
+                for x in list(itertools.product([0, 1], repeat=3))
+                if sum(x) == 1
+            ]:
+                solution = np.array(
+                    fixed_points(
+                        xs,
+                        payoff_mat,
+                        mutation=mutation,
+                        starting_solution=start,
+                    )
+                )
+
+                if np.isclose(
+                    odes_for_numerical_solver(solution, payoff_mat, mutation),
+                    [0 for _ in range(size)],
+                    atol=tol,
+                ).all():
+                    solutions.append(solution)
+
+        if starting_solution:
+            solution = np.array(
+                fixed_points(
+                    xs,
+                    payoff_mat,
+                    mutation=mutation,
+                    starting_solution=starting_solution,
+                )
+            )
+            if np.isclose(
+                odes_for_numerical_solver(solution, payoff_mat, mutation),
+                [0 for _ in range(size)],
+                atol=tol,
+            ).all():
+                solutions.append(solution)
+    else:
+        solutions = np.array(fixed_points(xs, payoff_mat))
+
+    solutions = np.array([s for s in solutions if xs not in s])
+
+    solutions = solutions[~np.any(solutions < 0, axis=1)]
+    solutions = solutions[~np.any(solutions > 1, axis=1)]
+    solutions = [[float(s) for s in solution] for solution in solutions]
+
+    proj = projection_2D()
+
+    lines = outline_2D()
+
+    ax.plot(
+        lines[0],
+        lines[1],
+        clip_on=False,
+        color="black",
+        zorder=3,
+        linewidth=2,
+    )
+
+    for label, coord, ha, va in zip(
+        labels,
+        [(0, 0), (1, 0), (0.5, 1)],
+        ["right", "left", "center"],
+        ["top", "top", "bottom"],
+    ):
+        ax.annotate(
+            label,
+            xy=coord,
+            xycoords="axes fraction",
+            ha=ha,
+            va=va,
+            color="black",
+            weight="bold",
+        )
+
+    J = jacobian(xs, payoff_mat)
+    point_types = []
+    for solution in solutions:
+        point_type = point_is(J, xs, solution)
+        colour = colours[point_type]
+        point_types.append((solution, point_type))
+
+        ax.scatter(
+            np.dot(proj, solution)[0],
+            np.dot(proj, solution)[1],
+            s=100,
+            color="black",
+            facecolor=colour,
+            marker="o",
+            zorder=11,
+        )
+
+        if point_type == "saddle":
+            ax.scatter(
+                np.dot(proj, solution)[0],
+                np.dot(proj, solution)[1],
+                s=10,
+                color="black",
+                facecolor="black",
+                marker="o",
+                zorder=11,
+            )
+
+    ax.set_xticks([], minor=False)
+    ax.set_yticks([], minor=False)
+    ax.set_aspect(1)
+
+    ax.axis("off")
+
+    information = [f"There are a total of {len(point_types)} fixed points."]
+    for point, type_ in point_types:
+        information.append(f"{point} is a {type_} point.")
+
+    return ax, information
+
+
+def initial_conditions_edges_3D_tweaked(num_points):
+    num_points = [i + 2 for i in num_points]
+    ics = np.zeros([sum(num_points), 4])
+    tetrahedron_edges = edges_3D()
+
+    index = 0
+    for i, point in enumerate(itertools.combinations(tetrahedron_edges, r=2)):
+        mx = point[1][0] - point[0][0]
+        my = point[1][1] - point[0][1]
+        mz = point[1][2] - point[0][2]
+
+        for k, j in enumerate(np.linspace(0, 1, num_points[i])):
+            x = point[0][0] + mx * j
+            y = point[0][1] + my * j
+            z = point[0][2] + mz * j
+
+            ics[index, :] = barycentric_coords_from_cartesian(
+                tetrahedron_edges, [x, y, z]
+            )
+
+            index += 1
+
+    for check in [
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0],
+    ]:
+        to_del = (np.isclose(ics, check)).all(axis=1).nonzero()
+        ics = np.delete(ics, to_del, axis=0)
+
+    return ics
+
+
+def arrow_coordinates_in_3D(sol, edge):
+    proj = projection_3D()
+
+    a = np.dot(proj, sol)
+
+    b = np.dot(proj, edge)
+
+    d = np.sqrt(sum([(i - j) ** 2 for i, j in zip(b, a)]))
+
+    return [[j + (1 / x) * (i - j) / d for i, j in zip(b, a)] for x in [1.1, 1]]

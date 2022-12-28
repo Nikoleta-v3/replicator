@@ -1,4 +1,10 @@
-from .solver import odes, fixed_points, jacobian, point_is
+from .solver import (
+    odes,
+    fixed_points,
+    jacobian,
+    point_is,
+    odes_for_numerical_solver,
+)
 from .helpers import (
     edges_2D,
     edges_3D,
@@ -21,7 +27,14 @@ from .initial_conditions import (
     face_function,
 )
 
-from .plotting import plot2D, plot3D
+from .plotting import (
+    plot2D,
+    plot3D,
+    plot3D_exterior,
+    plot2D_exterior,
+    initial_conditions_edges_3D_tweaked,
+    arrow_coordinates_in_3D,
+)
 
 
 from .arrows import Annotation3D, Arrow3D

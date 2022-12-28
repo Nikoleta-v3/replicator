@@ -25,22 +25,20 @@ def initial_conditions_edges_2D(num_x_points):
     np.array
         The barycentric coordinates of the initial conditions on the line of the triangle.
     """
-    ics = np.zeros([num_x_points * 3, 3])
+    ics = np.zeros([sum(num_x_points), 3])
     edges = edges_2D()
-
+    k = 0
     for i, point in enumerate(itertools.combinations(edges, r=2)):
         x = np.array([point[0][0], point[1][0]])
         y = np.array([point[0][1], point[1][1]])
         A = np.vstack([x, np.ones(len(x))]).T
         m, c = np.linalg.lstsq(A, y, rcond=None)[0]
 
-        xs = np.linspace(point[0][0], point[1][0], num_x_points + 2)[1:-1]
-        for j, x in enumerate(xs):
+        xs = np.linspace(point[0][0], point[1][0], num_x_points[i] + 2)[1:-1]
+        for x in xs:
             point = (x, x * m + c)
-            ics[i * num_x_points + j, :] = barycentric_coords_from_cartesian(
-                edges, point
-            )
-
+            ics[k, :] = barycentric_coords_from_cartesian(edges, point)
+            k += 1
     return ics
 
 

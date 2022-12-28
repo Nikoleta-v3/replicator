@@ -52,31 +52,37 @@ def projection_3D():
 def outline_3D():
     lines = np.array(
         [
-            [1, 0, -1, 1, 0, -1],
+            [1, 0, -1, 1, 0, 0],
             [
-                -1 / np.sqrt(3),
-                2 / np.sqrt(3),
-                -1 / np.sqrt(3),
                 -1 / np.sqrt(3),
                 0,
                 -1 / np.sqrt(3),
+                -1 / np.sqrt(3),
+                2 / np.sqrt(3),
+                0,
             ],
             [
                 -1 / np.sqrt(6),
+                3 / np.sqrt(6),
                 -1 / np.sqrt(6),
                 -1 / np.sqrt(6),
                 -1 / np.sqrt(6),
                 3 / np.sqrt(6),
-                -1 / np.sqrt(6),
             ],
         ]
     )
 
     last_line = np.array(
         [
-            [0, 0],
-            [0, 2 / np.sqrt(3)],
-            [3 / np.sqrt(6), -1 / np.sqrt(6)],
+            [0, -1],
+            [
+                2 / np.sqrt(3),
+                -1 / np.sqrt(3),
+            ],
+            [
+                -1 / np.sqrt(6),
+                -1 / np.sqrt(6),
+            ],
         ]
     )
     return lines, last_line

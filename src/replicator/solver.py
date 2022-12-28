@@ -5,13 +5,28 @@ import sympy as sym
 
 import numpy as np
 
-
-def odes(x, time, payoffs):
-    ax = np.dot(payoffs, x)
-    return x * (ax - np.dot(x, ax))
+from scipy.optimize import fsolve
 
 
-def fixed_points(xs, payoffs):
+def odes(x, time, payoffs, mutation=None):
+    if mutation is None:
+        mutation = 0
+    f = payoffs @ x
+    phi = x.T @ f
+    return x * (f - phi - 3 * mutation) + mutation
+
+
+def odes_for_numerical_solver(p, payoff_mat, mutation):
+    size = payoff_mat.shape[0]
+    xs = np.array(sym.symbols(f"x_1:{size + 1}"))
+    odes_ = odes(xs, None, payoff_mat, mutation)
+
+    fs = [sym.lambdify(xs, d) for d in odes_]
+
+    return [f(*p) for f in fs]
+
+
+def fixed_points(xs, payoffs, mutation=None, starting_solution=None):
     """Solves symbolically the system of equations of the replicator dynamics.
 
     Parameters
@@ -26,8 +41,19 @@ def fixed_points(xs, payoffs):
     list
         The fixed points
     """
-
-    x_bar = sym.solve([sum(xs) - 1] + list(odes(xs, None, payoffs)), list(xs))
+    if mutation:
+        x_bar = fsolve(
+            odes_for_numerical_solver,
+            starting_solution,
+            args=(
+                payoffs,
+                mutation,
+            ),
+        )
+    else:
+        x_bar = sym.solve(
+            [sum(xs) - 1] + list(odes(xs, None, payoffs, mutation)), list(xs)
+        )
     return x_bar
 
 
