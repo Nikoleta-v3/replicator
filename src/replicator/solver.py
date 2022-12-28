@@ -72,7 +72,7 @@ def point_is(jacobian, xs, solution):
         {x: s for x, s in zip(xs, solution)}
     ).eigenvals()
     eigen_values = np.array(
-        [float(val.subs({sym.I: 0})) for val in list(eigen_values.keys())]
+        [float(val.subs({sym.I: 0})) for val in eigen_values.keys() for _ in range(eigen_values[val])]
     )
     if 1 in solution:
         mask = np.ones(eigen_values.shape, bool)

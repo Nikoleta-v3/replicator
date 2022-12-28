@@ -240,6 +240,7 @@ def plot3D(
     generations_backwards_C=10,
     generations_forward_D=10,
     generations_backwards_D=10,
+    num_of_edge_ics=2,
     title=False,
 ):
 
@@ -267,8 +268,11 @@ def plot3D(
     xs = np.array(sym.symbols(f"x_1:{size + 1}"))
     solutions = np.array(fixed_points(xs, payoff_mat))
 
+    solutions = np.array([s for s in solutions if xs not in s])
+
     solutions = solutions[~np.any(solutions < 0, axis=1)]
     solutions = solutions[~np.any(solutions > 1, axis=1)]
+    solutions = [[float(s) for s in solution] for solution in solutions]
 
     J = jacobian(xs, payoff_mat)
     point_types = [point_is(J, xs, solution) for solution in solutions]
@@ -314,7 +318,7 @@ def plot3D(
                 zorder=11,
             )
 
-    edge_ics = initial_conditions_edges_3D(4)
+    edge_ics = initial_conditions_edges_3D(num_of_edge_ics)
 
     time = np.linspace(0.0, 6, 100)
 
