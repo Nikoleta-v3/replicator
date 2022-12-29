@@ -53,3 +53,5 @@ from .phase_plotting import (
     plot_phase_D,
     plot_simplex,
 )
+
+from .seperator import *
