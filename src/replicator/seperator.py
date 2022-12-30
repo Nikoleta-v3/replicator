@@ -118,7 +118,7 @@ def fit_Plane_with_LTSQ(XYZ):
     return (c, normal)
 
 
-def estimate_plane(directions, xs, ys, zs, valA, valB):
+def estimate_plane(directions, xs, ys, zs, valA, valB, maxx=None):
 
     Is, Js, Ls = np.where(directions == valA)
     n = directions.shape[0] - 1
@@ -145,7 +145,10 @@ def estimate_plane(directions, xs, ys, zs, valA, valB):
     data = np.array(toplot)
     c, normal = fit_Plane_with_LTSQ(data)
 
-    maxx = np.max(data[:, 0])
+    if maxx == None:
+        maxx = np.max(data[:, 0])
+    else:
+        maxx =maxx
     maxy = np.max(data[:, 1])
     minx = np.min(data[:, 0])
     miny = np.min(data[:, 1])
